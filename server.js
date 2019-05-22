@@ -29,6 +29,14 @@ io.on('connection', socket => {
         console.log(serverId);
     });
 
+    socket.on('disconnect', () => {
+        var index = users.findIndex(x => x.id === socket.id)
+        if (index > -1) {
+            console.log(users[index].username + " disconnected");
+            users.splice(index, 1);
+        }
+    });
+
     socket.on('playerVote', (vote) => {
         console.log("vote recieved from " + vote.name + " for " + vote.team.name);
         socket.to(serverId).emit('playerVoted', vote);
