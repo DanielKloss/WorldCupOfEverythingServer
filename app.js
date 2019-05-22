@@ -1,13 +1,8 @@
-const app = require('express')();
-const fs = require('fs');
+const express = require('express')
+const path = require('path')
+const PORT = process.env.PORT || 5000
 
-let options = {
-    key: fs.readFileSync("domain.key"),
-    cert: fs.readFileSync("domain.crt")
-};
-
-const https = require('https').Server(options, app);
-const io = require('socket.io')(https);
+express().use(express.static(path.join(__dirname, 'public'))).listen(PORT, () => console.log(`Listening on ${ PORT }`))
 
 users = [];
 
@@ -52,8 +47,4 @@ io.on('connection', socket => {
         console.log("New Round: " + round);
         socket.broadcast.emit('newRound', round);
     });
-});
-
-https.listen(port, () => {
-    console.log("started on port " + port);
 });
