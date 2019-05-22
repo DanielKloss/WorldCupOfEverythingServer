@@ -1,14 +1,15 @@
-const express = require('express')
-const path = require('path')
-const PORT = process.env.PORT || 5000
-
-express().use(express.static(path.join(__dirname, 'public'))).listen(PORT, () => console.log(`Listening on ${ PORT }`))
+const app = require('express')();
+const http = require('http').Server(app);
+const io = require('socket.io')(http);
 
 users = [];
-
-port = 5000;
-host = 'localhost';
 serverId = ''
+
+port = process.env.PORT || 5000;
+
+http.listen(port, () => {
+    console.log("started on port " + port);
+});
 
 io.on('connection', socket => {
     socket.on('username', (username) => {
