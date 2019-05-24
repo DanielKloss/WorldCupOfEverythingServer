@@ -33,6 +33,7 @@ io.on('connection', socket => {
         var index = users.findIndex(x => x.id === socket.id)
         if (index > -1) {
             console.log(users[index].username + " disconnected");
+            socket.to(serverId).emit('userLeft', users[index].username);
             users.splice(index, 1);
         }
     });
