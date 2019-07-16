@@ -3,7 +3,7 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 
 users = [];
-serverIds = []
+servers = []
 
 port = process.env.PORT || 5000;
 
@@ -13,44 +13,50 @@ http.listen(port, () => {
 
 io.on('connection', socket => {
     socket.on('username', (username, roomNumber) => {
+        roomNumber = roomNumber.toLowerCase();
         users.push({
             id: socket.id,
             username: username.toUpperCase(),
             roomNumber: roomNumber
         })
         socket.join(roomNumber);
-        socket.to(serverIds.find(s => s.roomNumber == roomNumber).id).emit('userJoined', username.toUpperCase());
+        socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('userJoined', username.toUpperCase());
         console.log(username.toUpperCase() + " joined " + "room " + roomNumber);
     });
 
     socket.on('serverJoin', () => {
-        roomNumber = socket.id.slice(0, 4);
+        roomNumber = socket.id.slice(0, 4).toLowerCase();
         socket.join(roomNumber);
-        serverIds.push({
+        servers.push({
             id: socket.id,
             roomNumber: roomNumber
         });
-        socket.to(socket.id).emit('roomNumber', roomNumber);
-        console.log("server joined - " + serverId);
+        socket.emit('roomNumber', roomNumber);
+        console.log("server joined - " + socket.id);
         console.log("room created - " + roomNumber);
     });
 
     socket.on('disconnect', () => {
-        var index = users.findIndex(x => x.id === socket.id)
-        if (index > -1) {
-            socket.to(serverIds.find(s => s.roomNumber == roomNumber).id).emit('userLeft', users[index].username);
-            users.splice(index, 1);
+        var userIndex = users.findIndex(x => x.id === socket.id);
+        var serverIndex = servers.findIndex(x => x.id === socket.id);
+        if (userIndex > -1) {
             console.log(users[index].username + " disconnected");
+            socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('userLeft', users[index].username);
+            users.splice(index, 1);
+        } else if (serverIndex > -1) {
+            console.log(servers[index].id + " disconnected");
+            servers.splice(index, 1);
         }
     });
 
     socket.on('playerVote', (vote, roomNumber) => {
-        console.log("vote recieved from " + vote.name + " for " + vote.team.name);
-        socket.to(serverIds.find(s => s.roomNumber == roomNumber).id).emit('playerVoted', vote);
+        console.log("vote recieved from " + vote.name + " for " + vote.team);
+        socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('playerVoted', vote);
     });
 
     socket.on('playMatch', (match, roomNumber) => {
         console.log("Match Started");
+        console.log("emitting to " + roomNumber);
         socket.to(roomNumber).emit('playMatch', match);
     });
 
@@ -61,6 +67,7 @@ io.on('connection', socket => {
 
     socket.on('newRound', (round, roomNumber) => {
         console.log("New Round: " + round);
+        console.log("emitting to " + roomNumber);
         socket.to(roomNumber).emit('newRound', round);
     });
 });
