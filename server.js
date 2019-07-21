@@ -11,21 +11,42 @@ http.listen(port, () => {
     console.log("started on port " + port);
 });
 
+function checkServer(roomNumber) {
+    let server = servers.find(s => s.roomNumber == roomNumber.toUpperCase());
+    if (server != null && server != undefined) {
+        return true;
+    } else {
+        return false;
+    }
+}
+
 io.on('connection', socket => {
+    socket.on('checkRoom', (roomNumber) => {
+        if (checkServer(roomNumber)) {
+            socket.emit("joinRoom", true);
+            console.log("room exists");
+        } else {
+            socket.emit("joinRoom", false);
+            console.log("no such room " + roomNumber);
+        }
+    });
+
     socket.on('username', (username, roomNumber) => {
-        roomNumber = roomNumber.toLowerCase();
+        roomNumber = roomNumber.toUpperCase();
         users.push({
             id: socket.id,
             username: username.toUpperCase(),
             roomNumber: roomNumber
         })
-        socket.join(roomNumber);
-        socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('userJoined', username.toUpperCase());
-        console.log(username.toUpperCase() + " joined " + "room " + roomNumber);
+        if (checkServer(roomNumber)) {
+            socket.join(roomNumber);
+            socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('userJoined', username.toUpperCase());
+            console.log(username.toUpperCase() + " joined " + "room " + roomNumber);
+        }
     });
 
     socket.on('serverJoin', () => {
-        roomNumber = socket.id.slice(0, 4).toLowerCase();
+        roomNumber = socket.id.slice(0, 4).toUpperCase();
         socket.join(roomNumber);
         servers.push({
             id: socket.id,
@@ -40,18 +61,24 @@ io.on('connection', socket => {
         var userIndex = users.findIndex(x => x.id === socket.id);
         var serverIndex = servers.findIndex(x => x.id === socket.id);
         if (userIndex > -1) {
-            console.log(users[index].username + " disconnected");
-            socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('userLeft', users[index].username);
-            users.splice(index, 1);
+            console.log(users[userIndex].username + " disconnected");
+            if (checkServer(roomNumber)) {
+                socket.to(server.id).emit('userLeft', users[userIndex].username);
+            }
+            users.splice(userIndex, 1);
         } else if (serverIndex > -1) {
-            console.log(servers[index].id + " disconnected");
-            servers.splice(index, 1);
+            console.log(servers[serverIndex].id + " disconnected");
+            servers.splice(serverIndex, 1);
         }
     });
 
     socket.on('playerVote', (vote, roomNumber) => {
         console.log("vote recieved from " + vote.name + " for " + vote.team);
-        socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('playerVoted', vote);
+        if (checkServer(roomNumber)) {
+            socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('playerVoted', vote);
+        } else {
+            console.log("SERVER IS DOWN OR DISCONNECTED")
+        }
     });
 
     socket.on('playMatch', (match, roomNumber) => {
