@@ -12,7 +12,7 @@ http.listen(port, () => {
 });
 
 function checkServer(roomNumber) {
-    let server = servers.find(s => s.roomNumber == roomNumber.toUpperCase());
+    let server = servers.find(s => s.roomNumber == roomNumber);
     if (server != null && server != undefined) {
         return true;
     } else {
@@ -22,6 +22,7 @@ function checkServer(roomNumber) {
 
 io.on('connection', socket => {
     socket.on('checkRoom', (roomNumber) => {
+        roomNumber = roomNumber.toUpperCase();
         if (checkServer(roomNumber)) {
             socket.emit("joinRoom", true);
             console.log("room exists");
@@ -33,15 +34,16 @@ io.on('connection', socket => {
 
     socket.on('username', (username, roomNumber) => {
         roomNumber = roomNumber.toUpperCase();
+        username = username.toUpperCase();
         users.push({
             id: socket.id,
-            username: username.toUpperCase(),
+            username: username,
             roomNumber: roomNumber
         })
         if (checkServer(roomNumber)) {
             socket.join(roomNumber);
-            socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('userJoined', username.toUpperCase());
-            console.log(username.toUpperCase() + " joined " + "room " + roomNumber);
+            socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('userJoined', username);
+            console.log(username + " joined " + "room " + roomNumber);
         }
     });
 
@@ -62,8 +64,8 @@ io.on('connection', socket => {
         var serverIndex = servers.findIndex(x => x.id === socket.id);
         if (userIndex > -1) {
             console.log(users[userIndex].username + " disconnected");
-            if (checkServer(roomNumber)) {
-                socket.to(server.id).emit('userLeft', users[userIndex].username);
+            if (checkServer(users[userIndex].roomNumber)) {
+                socket.to(servers.find(s => s.roomNumber == users[userIndex].roomNumber).id).emit('userLeft', users[userIndex].username);
             }
             users.splice(userIndex, 1);
         } else if (serverIndex > -1) {
@@ -73,6 +75,7 @@ io.on('connection', socket => {
     });
 
     socket.on('playerVote', (vote, roomNumber) => {
+        roomNumber = roomNumber.toUpperCase();
         console.log("vote recieved from " + vote.name + " for " + vote.team);
         if (checkServer(roomNumber)) {
             socket.to(servers.find(s => s.roomNumber == roomNumber).id).emit('playerVoted', vote);
@@ -82,17 +85,20 @@ io.on('connection', socket => {
     });
 
     socket.on('playMatch', (match, roomNumber) => {
+        roomNumber = roomNumber.toUpperCase();
         console.log("Match Started");
         console.log("emitting to " + roomNumber);
         socket.to(roomNumber).emit('playMatch', match);
     });
 
     socket.on('matchOver', (standings, roomNumber) => {
+        roomNumber = roomNumber.toUpperCase();
         console.log("winner is: " + standings[standings.length - 1].name);
         socket.to(roomNumber).emit('matchFinished', standings);
     });
 
     socket.on('newRound', (round, roomNumber) => {
+        roomNumber = roomNumber.toUpperCase();
         console.log("New Round: " + round);
         console.log("emitting to " + roomNumber);
         socket.to(roomNumber).emit('newRound', round);
