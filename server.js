@@ -20,6 +20,15 @@ function checkServer(roomNumber) {
     }
 }
 
+function checkUsername(username, roomNumber) {
+    let user = users.find(u => u.username == username && u.roomNumber == roomNumber);
+    if (user != null && user != undefined) {
+        return false;
+    } else {
+        return true;
+    }
+}
+
 io.on('connection', socket => {
     socket.on('checkRoom', (roomNumber) => {
         roomNumber = roomNumber.toUpperCase();
@@ -31,6 +40,18 @@ io.on('connection', socket => {
             console.log("no such room " + roomNumber);
         }
     });
+
+    socket.on('checkUsername', (username, roomNumber) => {
+        username = username.toUpperCase();
+        roomNumber = roomNumber.toUpperCase();
+        if (checkUsername(username, roomNumber)) {
+            socket.emit("userChecked", true);
+            console.log("username is ok");
+        } else {
+            socket.emit("userChecked", false);
+            console.log("username is not ok");
+        }
+    })
 
     socket.on('username', (username, roomNumber) => {
         roomNumber = roomNumber.toUpperCase();
