@@ -109,7 +109,9 @@ io.on('connection', socket => {
         roomNumber = roomNumber.toUpperCase();
         console.log("Match Started");
         console.log("emitting to " + roomNumber);
-        socket.to(roomNumber).emit('playMatch', match);
+        setTimeout(function () {
+            socket.to(roomNumber).emit('playMatch', match);
+        }, 5000);
     });
 
     socket.on('matchOver', (standings, roomNumber) => {
